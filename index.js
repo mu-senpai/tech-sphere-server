@@ -67,6 +67,16 @@ async function run() {
                 .send({ success: true })
         })
 
+        app.post("/logout", (req, res) => {
+            const body = req.body;
+            res.clearCookie('token', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+            })
+                .send({ success: true });
+        })
+
         // Blog related APIs
         app.get("/blogs", async (req, res) => {
             const { category, search } = req.query;
@@ -117,15 +127,35 @@ async function run() {
             res.send(result);
         });
 
-        app.post("/logout", (req, res) => {
-            const body = req.body;
-            res.clearCookie('token', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-            })
-                .send({ success: true });
-        })
+        app.get("/recent-blogs", async (req, res) => {
+            const blogs = await blogCollection
+                .find()
+                .sort({ date: -1 })
+                .limit(6)
+                .toArray();
+
+            res.send(blogs);
+        });
+
+        app.get("/featured-blogs", async (req, res) => {
+            const blogs = await blogCollection
+                .aggregate([
+                    {
+                        $addFields: {
+                            wordCount: { $size: { $split: ["$longDescription", " "] } },
+                        },
+                    },
+                    {
+                        $sort: { wordCount: -1 },
+                    },
+                    {
+                        $limit: 10,
+                    },
+                ])
+                .toArray();
+
+            res.send(blogs);
+        });
     } finally {
         // await client.close();
     }
