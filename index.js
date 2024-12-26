@@ -67,6 +67,56 @@ async function run() {
                 .send({ success: true })
         })
 
+        // Blog related APIs
+        app.get("/blogs", async (req, res) => {
+            const { category, search } = req.query;
+
+            let query = {};
+
+            if (category) {
+                query.category = category;
+            }
+
+            if (search) {
+                query.$or = [
+                    { title: { $regex: search, $options: 'i' } },
+                ];
+            }
+
+            const blogs = blogCollection.find(query);
+            const result = await blogs.toArray();
+
+            res.send(result);
+        });
+
+        app.get('/blogs/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await blogCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.post('/blogs', verifyToken, async (req, res) => {
+            const newBlog = req.body;
+            const result = await blogCollection.insertOne(newBlog);
+            res.send(result);
+        })
+
+        app.patch('/blogs/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const blogUpdates = req.body;
+
+            delete blogUpdates._id;
+
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: blogUpdates,
+            };
+
+            const result = await blogCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+
         app.post("/logout", (req, res) => {
             const body = req.body;
             res.clearCookie('token', {
