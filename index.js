@@ -156,6 +156,20 @@ async function run() {
 
             res.send(blogs);
         });
+
+        app.post('/comments', verifyToken, async (req, res) => {
+            const newComment = req.body;
+            const result = await commentsCollection.insertOne(newComment);
+            res.json({ ...newComment, result });
+        });
+
+        app.get('/comments/:blogId', async (req, res) => {
+            const { blogId } = req.params;
+            const comments = await commentsCollection
+                .find({ blogId: blogId })
+                .toArray();
+            res.send(comments);
+        });
     } finally {
         // await client.close();
     }
