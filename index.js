@@ -55,7 +55,27 @@ async function run() {
         const wishlistItemsCollection = client.db("blogDB").collection("wishlistItems");
         const commentsCollection = client.db("blogDB").collection("comments");
 
-        
+        // jwt related APIs
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1d' });
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+            })
+                .send({ success: true })
+        })
+
+        app.post("/logout", (req, res) => {
+            const body = req.body;
+            res.clearCookie('token', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+            })
+                .send({ success: true });
+        })
     } finally {
         // await client.close();
     }
