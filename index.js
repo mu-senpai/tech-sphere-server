@@ -181,6 +181,10 @@ async function run() {
         app.get('/wishlist/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
 
+            if (req.user.email !== email) {
+                return res.status(403).send({ message: 'Forbidden Access!' });
+            }
+
             const query = { email: email };
             const cursor = wishlistItemsCollection.find(query);
             const result = await cursor.toArray();
