@@ -176,7 +176,7 @@ async function run() {
             const cursor = wishlistItemsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
-        })
+        });
 
         app.get('/wishlist/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
@@ -189,20 +189,70 @@ async function run() {
             const cursor = wishlistItemsCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
-        })
+        });
 
         app.post('/wishlist', verifyToken, async (req, res) => {
             const newItem = req.body;
             const result = await wishlistItemsCollection.insertOne(newItem);
             res.send(result);
-        })
+        });
 
         app.delete('/wishlist/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await wishlistItemsCollection.deleteOne(query);
             res.send(result);
-        })
+        });
+
+        // User related APIs
+        app.get('/users', async (req, res) => {
+            const cursor = userCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        app.get('/users/public/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const result = await userCollection.findOne(query);
+            res.send(result);
+        });
+
+        app.get('/users/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.user.email !== email) {
+                return res.status(403).send({ message: 'Forbidden Access!' });
+            }
+
+            const query = { email: email };
+            const result = await userCollection.findOne(query);
+            res.send(result);
+        });
+
+        app.post('/users', async (req, res) => {
+            const newUser = req.body;
+            console.log(newUser);
+            const result = await userCollection.insertOne(newUser);
+            res.send(result);
+        });
+
+        app.put('/users', async (req, res) => {
+            const user = req.body;
+            const filter = { email: user.email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    name: user.name,
+                    email: user.email,
+                    photo: user.photo,
+                    createdAt: user.createdAt,
+                    uid: user.uid,
+                },
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        });
     } finally {
         // await client.close();
     }
