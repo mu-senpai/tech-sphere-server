@@ -170,6 +170,39 @@ async function run() {
                 .toArray();
             res.send(comments);
         });
+
+        // Wishlist related APIs
+        app.get('/wishlist', async (req, res) => {
+            const cursor = wishlistItemsCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.get('/wishlist/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.user.email !== email) {
+                return res.status(403).send({ message: 'Forbidden Access!' });
+            }
+
+            const query = { email: email };
+            const cursor = wishlistItemsCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.post('/wishlist', verifyToken, async (req, res) => {
+            const newItem = req.body;
+            const result = await wishlistItemsCollection.insertOne(newItem);
+            res.send(result);
+        })
+
+        app.delete('/wishlist/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await wishlistItemsCollection.deleteOne(query);
+            res.send(result);
+        })
     } finally {
         // await client.close();
     }
