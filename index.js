@@ -79,7 +79,7 @@ async function run() {
 
         // Blog related APIs
         app.get("/blogs", async (req, res) => {
-            const { category, search } = req.query;
+            const { category, search, sortBy } = req.query;
 
             let query = {};
 
@@ -93,7 +93,14 @@ async function run() {
                 ];
             }
 
-            const blogs = blogCollection.find(query);
+            let sort = {};
+            if (sortBy === 'date-asc') {
+                sort = { date: 1 };
+            } else if (sortBy === 'date-desc') {
+                sort = { date: -1 };
+            }
+
+            const blogs = blogCollection.find(query).sort(sort);
             const result = await blogs.toArray();
 
             res.send(result);
@@ -142,7 +149,18 @@ async function run() {
                 .aggregate([
                     {
                         $addFields: {
-                            wordCount: { $size: { $split: ["$longDescription", " "] } },
+                            wordCount: {
+                                $reduce: {
+                                    input: "$longDescription",
+                                    initialValue: 0,
+                                    in: {
+                                        $add: [
+                                            "$$value",
+                                            { $size: { $split: ["$$this", " "] } } 
+                                        ]
+                                    }
+                                }
+                            }
                         },
                     },
                     {
@@ -211,20 +229,8 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/users/public/:email', async (req, res) => {
+        app.get('/users/:email', async (req, res) => {
             const email = req.params.email;
-            const query = { email: email };
-            const result = await userCollection.findOne(query);
-            res.send(result);
-        });
-
-        app.get('/users/:email', verifyToken, async (req, res) => {
-            const email = req.params.email;
-
-            if (req.user.email !== email) {
-                return res.status(403).send({ message: 'Forbidden Access!' });
-            }
-
             const query = { email: email };
             const result = await userCollection.findOne(query);
             res.send(result);
